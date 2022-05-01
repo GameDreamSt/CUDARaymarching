@@ -1,0 +1,67 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <CudaCompile Include="CudaRender.cu">
+      <Filter>SOURCE</Filter>
+    </CudaCompile>
+    <CudaCompile Include="kernel.cu">
+      <Filter>SOURCE</Filter>
+    </CudaCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="CVector.cuh">
+      <Filter>HEADERS</Filter>
+    </ClInclude>
+    <ClInclude Include="CudaRender.cuh">
+      <Filter>HEADERS</Filter>
+    </ClInclude>
+    <ClInclude Include="Vector.h">
+      <Filter>HEADERS</Filter>
+    </ClInclude>
+    <ClInclude Include="CudaFunctions.cuh">
+      <Filter>HEADERS</Filter>
+    </ClInclude>
+    <ClInclude Include="ConsoleFunctions.h">
+      <Filter>HEADERS</Filter>
+    </ClInclude>
+    <ClInclude Include="SDLWin.h">
+      <Filter>SDL</Filter>
+    </ClInclude>
+    <ClInclude Include="FPS.h">
+      <Filter>SDL\FPS</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="HEADERS">
+      <UniqueIdentifier>{90459a87-f99d-46f6-b6d4-21176e981209}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="SOURCE">
+      <UniqueIdentifier>{c972a175-b5ff-4e90-9efa-66f3cb73735d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="SDL">
+      <UniqueIdentifier>{e6d2c21c-62ed-4cc6-b9ea-d502405e6dbc}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="SDL\FPS">
+      <UniqueIdentifier>{aadb0a9d-9a1b-4bff-8836-a2bff881d557}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="Vector.cpp">
+      <Filter>SOURCE</Filter>
+    </ClCompile>
+    <ClCompile Include="SDLMain.cpp">
+      <Filter>SDL</Filter>
+    </ClCompile>
+    <ClCompile Include="FPS.cpp">
+      <Filter>SDL\FPS</Filter>
+    </ClCompile>
+    <ClCompile Include="SDLWin.cpp">
+      <Filter>SDL</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="numbers.bmp">
+      <Filter>SDL\FPS</Filter>
+    </Image>
+  </ItemGroup>
+</Project>
