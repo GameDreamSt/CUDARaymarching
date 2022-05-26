@@ -1,8 +1,9 @@
-# CUDARaymarching
+# CUDA Raymarching
 Raymarching demo with CUDA and SDL2
 
-![sphereGIF](https://github.com/DovydasGudauskas/CUDARaymarching/blob/main/sphereGIF.gif)
-
+<p align="center">
+  <img src="https://github.com/DovydasGudauskas/CUDARaymarching/blob/main/sphereGIF.gif" alt="Sphere GIF"/>
+</p>
 
 ## Controls
 WASD - Movement
