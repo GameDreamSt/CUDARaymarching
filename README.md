@@ -1,6 +1,9 @@
 # CUDARaymarching
 Raymarching demo with CUDA and SDL2
 
+![sphereGIF](https://github.com/DovydasGudauskas/CUDARaymarching/blob/main/sphereGIF.gif)
+
+
 ## Controls
 WASD - Movement
 Q/E - Rotation
