@@ -166,4 +166,11 @@ public:
 
 	//	return vec;
 	//}
+
+	__device__ static CVector3 Reflect(CVector3 ray, CVector3 normal)
+	{
+		normal = normal.Normalize();
+
+		return ray - normal * ray.Scalar(normal) * 2;
+	}
 };

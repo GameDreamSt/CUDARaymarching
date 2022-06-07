@@ -31,6 +31,32 @@ __device__ float DistanceEstimator(CVector3 point)
 	return min(point.y, dSphere);
 }
 
+enum HitObject
+{
+	None = 0,
+	Ground = 1,
+	Sphere = 2
+};
+
+__device__ float DistanceEstimatorHit(CVector3 point, HitObject& hitObj)
+{
+	CVector3 mySphere = CVector3(0.f, 1.f, 6.f);
+	float sphereRadius = 1.;
+
+	float dSphere = (mySphere - point).Magnitude() - sphereRadius;
+
+	if (point.y < dSphere)
+	{
+		hitObj = HitObject::Ground;
+		return point.y;
+	}
+	else
+	{
+		hitObj = HitObject::Sphere;
+		return dSphere;
+	}
+}
+
 #define MAX_RAY_STEPS 100
 #define MAX_DISTANCE 25.f
 #define MIN_DISTANCE 0.005f
@@ -53,6 +79,30 @@ __device__ float RayMarch(CVector3 from, CVector3 direction)
 	return totalDistance;
 }
 
+__device__ float RayMarchHit(CVector3 from, CVector3 direction, HitObject& hitObj)
+{
+	float totalDistance = 0.0f;
+
+	for (int steps = 0; steps < MAX_RAY_STEPS; steps++)
+	{
+		CVector3 point = from + direction * totalDistance;
+
+		float distance = DistanceEstimatorHit(point, hitObj);
+		totalDistance += distance;
+
+		if (distance < MIN_DISTANCE)
+			break;
+
+		if (distance > MAX_DISTANCE)
+		{
+			hitObj = HitObject::None;
+			break;
+		}
+	}
+
+	return totalDistance;
+}
+
 __device__ CVector3 GetNormal(CVector3 point)
 {
 	float distance = DistanceEstimator(point);
@@ -69,6 +119,15 @@ __device__ CVector3 GetNormal(CVector3 point)
 struct S3
 {
 	float x, y, z;
+
+	S3() {}
+
+	__device__ S3(float X, float Y, float Z)
+	{
+		x = X;
+		y = Y;
+		z = Z;
+	}
 };
 
 __device__ float SoftShadowRaymarch(CVector3 from, CVector3 direction, float k)
@@ -93,6 +152,22 @@ __device__ float SoftShadowRaymarch(CVector3 from, CVector3 direction, float k)
 	return res;
 }
 
+__device__ float SimpleLight(CVector3 point, S3 lightS3)
+{
+	CVector3 lightPos = CVector3(lightS3.x, lightS3.y, lightS3.z);
+	CVector3 lightRay = (lightPos - point).Normalize();
+	CVector3 normal = GetNormal(point);
+
+	float diffuse = lightRay.Scalar(normal);
+
+	if (diffuse > 1.f)
+		return 1.f;
+	else if (diffuse < 0.f)
+		return 0.f;
+
+	return diffuse;
+}
+
 __device__ float GetLight(CVector3 point, S3 lightS3)
 {
 	CVector3 lightPos = CVector3(lightS3.x, lightS3.y, lightS3.z);
@@ -113,7 +188,115 @@ __device__ float GetLight(CVector3 point, S3 lightS3)
 
 	return diffuse * shadow;
 }
-__global__ void Shader(SDL_Color*pixels, int screenX, int screenY, S3 camS3, float camRotY, S3 lightS3)
+
+#define TILESIZE 2
+
+__device__ S3 GetGroundColor(CVector3& point)
+{
+	S3 col = S3(0,0,0);
+
+	if (point.x < 0.0f)
+		point.x -= TILESIZE;
+
+	if (point.z < 0.0f)
+		point.z -= TILESIZE;
+
+	bool red;
+	if ((int)(point.x / TILESIZE) % 2 == 0)
+		red = (int)(point.z / TILESIZE) % 2 == 0;
+	else
+		red = (int)(point.z / TILESIZE) % 2 != 0;
+
+	if (red)
+	{
+		col.z = 1.0f; // R
+		col.y = 0.25f;
+		col.x = 0.25f; // B
+	}
+	else
+	{
+		col.z = 0.25f; // R
+		col.y = 0.25f;
+		col.x = 1.0f; // B
+	}
+
+	return col;
+}
+
+__device__ void SetColorFromS3(SDL_Color& pixel, S3 s3)
+{
+	pixel.r = (unsigned char)(s3.x * 255.);
+	pixel.g = (unsigned char)(s3.y * 255.);
+	pixel.b = (unsigned char)(s3.z * 255.);
+}
+
+__device__ void SetColorFromS3WithLight(SDL_Color& pixel, S3 s3, float& light)
+{
+	s3.x *= light;
+	s3.y *= light;
+	s3.z *= light;
+
+	SetColorFromS3(pixel, s3);
+}
+
+__device__ void SetGroundColor(SDL_Color& pixel, float& light, CVector3& point)
+{
+	S3 col = GetGroundColor(point);
+
+	SetColorFromS3WithLight(pixel, col, light);
+}
+
+__device__ void SphereReflect(SDL_Color& pixel, S3& lightS3, CVector3& oldPoint, CVector3& oldRayDir, float& oldLight)
+{
+	if (oldLight < 0.1f)
+		oldLight = 0.1f;
+
+	CVector3 normal = GetNormal(oldPoint);
+	CVector3 point = oldPoint + normal * 0.01f;
+
+	CVector3 rayDir = CVector3::Reflect(oldRayDir, GetNormal(point));
+
+	HitObject hitObj;
+	float dist = RayMarchHit(point, rayDir, hitObj);
+
+	if (hitObj == HitObject::None)
+	{
+		pixel.r = pixel.g = pixel.b = (unsigned char)(oldLight * 10.);
+		return;
+	}
+
+	point = oldPoint + rayDir * dist;
+
+	float light = SimpleLight(point, lightS3);
+	light = pow(light, 0.45454545454f);
+
+	S3 col = S3(0,0,0);
+
+	switch (hitObj)
+	{
+	case HitObject::Ground:
+		col = GetGroundColor(point);
+
+		col.x *= light * oldLight;
+		col.y *= light * oldLight;
+		col.z *= light * oldLight;
+
+		SetColorFromS3(pixel, col);
+		break;
+
+	default:
+	case HitObject::None:
+		pixel.r = pixel.g = pixel.b = (unsigned char)(oldLight * 255.);
+		break;
+
+	case HitObject::Sphere:
+		//SphereReflect(pixel, lightS3, point);
+		pixel.r = pixel.g = pixel.b = (unsigned char)(oldLight * 255.);
+		break;
+	}
+}
+
+__global__ void Shader(SDL_Color* pixels, int screenX, int screenY, S3 camS3, float camRotY, S3 lightS3)
 {
 	int index = threadIdx.x + blockIdx.x * THREAD_COUNT;
 
@@ -129,17 +312,41 @@ __global__ void Shader(SDL_Color*pixels, int screenX, int screenY, S3 camS3, flo
 
 	CVector2 uv = (screenCoord - iResolution * 0.5f) / iResolution.y;
 
-	CVector3 rd = CVector3(uv.x, -uv.y, 1.0f).Normalize();
+	CVector3 rayDir = CVector3(uv.x, -uv.y, 1.0f).Normalize();
 
-	rd = CVector3::RotateByY(rd, camRotY);
+	rayDir = CVector3::RotateByY(rayDir, camRotY);
 
 	CVector3 cam = CVector3(camS3.x, camS3.y, camS3.z);
-	float dist = RayMarch(cam, rd);
 
-	CVector3 point = cam + rd * dist;
+	HitObject hitObj;
+	float dist = RayMarchHit(cam, rayDir, hitObj);
 
-	pixels[index].r = pixels[index].g = pixels[index].b = (unsigned char)(GetLight(point, lightS3) * 255.);
-	pixels[index].a = 255;
+	if (hitObj == HitObject::None)
+	{
+		pixels[index].r = pixels[index].g = pixels[index].b = 0;
+		return;
+	}
+
+	CVector3 point = cam + rayDir * dist;
+
+	float light = GetLight(point, lightS3);
+	light = pow(light, 0.45454545454f);
+
+	switch (hitObj)
+	{
+		case HitObject::Ground:
+			SetGroundColor(pixels[index], light, point);
+		break;
+
+		default:
+		case HitObject::None:
+			pixels[index].r = pixels[index].g = pixels[index].b = 0;
+			break;
+
+		case HitObject::Sphere:
+			SphereReflect(pixels[index], lightS3, point, rayDir, light);
+			break;
+	}
 }
 
 void ApplyShader(Vector3 camPos, float camRotY, Vector3 lightPos)
