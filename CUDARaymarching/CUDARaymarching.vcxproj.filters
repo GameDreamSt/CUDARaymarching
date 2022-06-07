@@ -4,9 +4,6 @@
     <CudaCompile Include="CudaRender.cu">
       <Filter>SOURCE</Filter>
     </CudaCompile>
-    <CudaCompile Include="kernel.cu">
-      <Filter>SOURCE</Filter>
-    </CudaCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="CVector.cuh">

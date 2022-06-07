@@ -82,7 +82,6 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <CudaCompile Include="CudaRender.cu" />
-    <CudaCompile Include="kernel.cu" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ConsoleFunctions.h" />
