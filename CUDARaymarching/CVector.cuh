@@ -116,6 +116,16 @@ public:
 		return sqrt(x * x + y * y + z * z);
 	}
 
+	__device__ CVector3 Absolute()
+	{
+		return CVector3(abs(x), abs(y), abs(z));
+	}
+
+	__device__ CVector3 Maximum(float bar)
+	{
+		return CVector3(max(x, bar), max(y, bar), max(z, bar));
+	}
+
 	__device__ CVector3 Normalize()
 	{
 		CVector3 normalizedVec = *this;
